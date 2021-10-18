@@ -24,42 +24,44 @@ public class MaryTTSEngine implements AbstractEngine {
     static final String OUT_OPT = "output";
     static final String VOICE_OPT = "voice";
     @Override
-    public void textToSpeech(String input, OutputStream outputStream) throws IOException {
+    public byte[] textToSpeech(String input) throws IOException {
 
-        // get output option
-        String outputFileName = "output.wav";
+        return null;
 
-        // get inputthe voice name
-        String voiceName = "cmu-slt-hsmm";
-
-        // init mary
-        LocalMaryInterface mary = null;
-        try {
-            mary = new LocalMaryInterface();
-        } catch (MaryConfigurationException e) {
-            throw new IOException("Could not initialize MaryTTS interface", e);
-        }
-
-        // Set voice / language
-        mary.setVoice(voiceName);
-
-        // synthesize
-        AudioInputStream audio = null;
-        try {
-            audio = mary.generateAudio(input);
-        } catch (SynthesisException e) {
-            System.err.println("Synthesis failed: " + e.getMessage());
-            System.exit(1);
-        }
-
-        // write to output
-        double[] samples = MaryAudioUtils.getSamplesAsDoubleArray(audio);
-        try {
-            MaryAudioUtils.writeWavFile(samples, outputFileName, audio.getFormat());
-            System.out.println("Output written to " + outputFileName);
-        } catch (IOException e) {
-            System.err.println("Could not write to file: " + outputFileName + "\n" + e.getMessage());
-            System.exit(1);
-        }
+//        // get output option
+//        String outputFileName = "output.wav";
+//
+//        // get inputthe voice name
+//        String voiceName = "cmu-slt-hsmm";
+//
+//        // init mary
+//        LocalMaryInterface mary = null;
+//        try {
+//            mary = new LocalMaryInterface();
+//        } catch (MaryConfigurationException e) {
+//            throw new IOException("Could not initialize MaryTTS interface", e);
+//        }
+//
+//        // Set voice / language
+//        mary.setVoice(voiceName);
+//
+//        // synthesize
+//        AudioInputStream audio = null;
+//        try {
+//            audio = mary.generateAudio(input);
+//        } catch (SynthesisException e) {
+//            System.err.println("Synthesis failed: " + e.getMessage());
+//            System.exit(1);
+//        }
+//
+//        // write to output
+//        double[] samples = MaryAudioUtils.getSamplesAsDoubleArray(audio);
+//        try {
+//            MaryAudioUtils.writeWavFile(samples, outputFileName, audio.getFormat());
+//            System.out.println("Output written to " + outputFileName);
+//        } catch (IOException e) {
+//            System.err.println("Could not write to file: " + outputFileName + "\n" + e.getMessage());
+//            System.exit(1);
+//        }
     }
 }

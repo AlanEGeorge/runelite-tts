@@ -9,9 +9,10 @@ import com.google.cloud.texttospeech.v1.TextToSpeechClient;
 import com.google.cloud.texttospeech.v1.VoiceSelectionParams;
 import com.google.protobuf.ByteString;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
+import javazoom.jl.player.*;
+import java.io.FileInputStream;
+
+import java.io.*;
 
 public class GoogleCloudEngine implements AbstractEngine {
 
@@ -22,9 +23,7 @@ public class GoogleCloudEngine implements AbstractEngine {
     }
 
     @Override
-    public void textToSpeech(String input, OutputStream outputStream) throws IOException {
-        System.out.println("Converting input to speech: " + input);
-
+    public byte[] textToSpeech(String input) throws IOException {
         if (!envExists(GOOGLE_ENV_NAME)) {
             throw new IOException("Failed to find environment variable: " + GOOGLE_ENV_NAME);
         }
@@ -44,7 +43,7 @@ public class GoogleCloudEngine implements AbstractEngine {
             VoiceSelectionParams voice =
                     VoiceSelectionParams.newBuilder()
                             .setLanguageCode("en-US")
-                            .setSsmlGender(SsmlVoiceGender.FEMALE)
+                            .setSsmlGender(SsmlVoiceGender.MALE)
                             .build();
 
             // Select the type of audio file you want returned
@@ -60,7 +59,21 @@ public class GoogleCloudEngine implements AbstractEngine {
             ByteString audioContents = response.getAudioContent();
 
             // Write the response to the output file.
-            outputStream.write(audioContents.toByteArray());
+
+            InputStream myInputStream = new ByteArrayInputStream(audioContents.toByteArray());
+
+            Thread test = new Thread(() -> {
+                try{
+//                    FileInputStream fis = new FileInputStream("output.mp3");
+                    Player playMP3 = new Player(myInputStream);
+
+                    playMP3.play();
+                } catch(Exception e){System.out.println(e);}
+            });
+            test.start();
+
+
+            return null;
         }
 
     }
