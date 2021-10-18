@@ -11,3 +11,4 @@ nbproject/
 src/main/resources/*.json
 *.mp3
 *.wav
+log/

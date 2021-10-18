@@ -1,7 +1,6 @@
-package com.bsh.engines;
+package com.bsh.engine;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
 public interface AbstractEngine {
 

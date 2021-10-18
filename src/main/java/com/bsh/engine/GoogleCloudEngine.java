@@ -1,4 +1,4 @@
-package com.bsh.engines;
+package com.bsh.engine;
 
 import com.google.cloud.texttospeech.v1.AudioConfig;
 import com.google.cloud.texttospeech.v1.AudioEncoding;
@@ -10,7 +10,6 @@ import com.google.cloud.texttospeech.v1.VoiceSelectionParams;
 import com.google.protobuf.ByteString;
 
 import javazoom.jl.player.*;
-import java.io.FileInputStream;
 
 import java.io.*;
 
@@ -58,22 +57,8 @@ public class GoogleCloudEngine implements AbstractEngine {
             // Get the audio contents from the response
             ByteString audioContents = response.getAudioContent();
 
-            // Write the response to the output file.
-
-            InputStream myInputStream = new ByteArrayInputStream(audioContents.toByteArray());
-
-            Thread test = new Thread(() -> {
-                try{
-//                    FileInputStream fis = new FileInputStream("output.mp3");
-                    Player playMP3 = new Player(myInputStream);
-
-                    playMP3.play();
-                } catch(Exception e){System.out.println(e);}
-            });
-            test.start();
-
-
-            return null;
+            // Return the Mp3 as bytes
+            return audioContents.toByteArray();
         }
 
     }

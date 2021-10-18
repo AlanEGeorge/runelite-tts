@@ -1,24 +1,21 @@
 package com.bsh;
 
-import com.bsh.engines.GoogleCloudEngine;
+import com.bsh.engine.GoogleCloudEngine;
+import com.bsh.engine.MaryTTSEngine;
+import com.bsh.engine.TTSEngine;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
-import net.runelite.api.GameState;
-import net.runelite.api.Player;
+import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 
 @Slf4j
@@ -30,6 +27,8 @@ public class TTSPlugin extends Plugin
 	private String lastNpcDialogueText = null;
 	private String lastPlayerDialogueText = null;
 	private Widget[] dialogueOptions;
+
+	private final TTSEngine ttsEngine = new TTSEngine(GoogleCloudEngine.class);
 
 	@Inject
 	private Client client;
@@ -62,7 +61,19 @@ public class TTSPlugin extends Plugin
 	public void onGameTick(GameTick tick) {
 		Widget npcDialogueTextWidget = client.getWidget(WidgetInfo.DIALOG_NPC_TEXT);
 
+		// Convert the NPC dialog into speech only if we haven't seen it before
 		if (npcDialogueTextWidget != null && npcDialogueTextWidget.getText() != lastNpcDialogueText) {
+			final int npcId = npcDialogueTextWidget.getId();
+
+			for (NPC npc : client.getNpcs()) {
+				// We found the NPC we're talking to
+				if (npc.getId() == npcId) {
+					for (Node param : npc.getComposition().getParams()) {
+						log.info("Param: " + param.toString());
+					}
+				}
+			}
+
 			String npcText = npcDialogueTextWidget.getText();
 			lastNpcDialogueText = npcText;
 
@@ -70,10 +81,8 @@ public class TTSPlugin extends Plugin
 			String strippedNpcText = npcText.replace("<br>", " ");
 
 			String npcName = client.getWidget(WidgetInfo.DIALOG_NPC_NAME).getText();
-
-			final GoogleCloudEngine engine = new GoogleCloudEngine();
 			try {
-				engine.textToSpeech(strippedNpcText);
+				ttsEngine.textToSpeech(strippedNpcText);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
