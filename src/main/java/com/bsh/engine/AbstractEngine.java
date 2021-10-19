@@ -10,6 +10,8 @@ public interface AbstractEngine {
      * @param input text input to convert to speech
      * @param outputStream a pointer to the output stream to write the speech to
      */
-    byte[] textToSpeech(String input) throws IOException;
+    byte[] textToSpeechNpc(String input) throws IOException;
+
+    byte[] textToSpeechPlayer(String input) throws IOException;
 
 }

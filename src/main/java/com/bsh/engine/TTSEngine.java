@@ -28,19 +28,34 @@ public class TTSEngine<T extends AbstractEngine> {
     }
 
     public void shutdown() {
-        executorService.shutdown();
         log.info("TTSEngine shutdown");
+        executorService.shutdownNow();
     }
 
-    public void textToSpeech(final String input) throws IOException {
-        final byte[] result = engineImpl.textToSpeech(input);
+    public void textToSpeechPlayer(final String input) throws IOException {
+        final byte[] result = engineImpl.textToSpeechPlayer(input);
 
-        InputStream myInputStream = new ByteArrayInputStream(result);
+        playAudio(input, result);
+    }
+
+    public void textToSpeechNpc(final String input) throws IOException {
+        final byte[] result = engineImpl.textToSpeechNpc(input);
+
+        playAudio(input, result);
+    }
+
+    public void playAudio(final String input, final byte[] mp3Data) throws IOException {
+        if (mp3Data == null) {
+            throw new IOException("Text conversion result was null");
+        }
+
+        InputStream myInputStream = new ByteArrayInputStream(mp3Data);
 
         // Cancel existing playing audio
         if (audioFuture != null) {
-            log.info("Cancelled currently playing audio: " + input);
+            log.info("Cancelling currently playing audio: " + input);
             audioFuture.cancel(true);
+            log.info("Cancelled currently playing audio: " + input);
         }
 
         audioFuture = executorService.submit(() -> {

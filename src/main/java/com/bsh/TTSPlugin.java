@@ -1,7 +1,6 @@
 package com.bsh;
 
 import com.bsh.engine.GoogleCloudEngine;
-import com.bsh.engine.MaryTTSEngine;
 import com.bsh.engine.TTSEngine;
 import com.google.inject.Provides;
 import javax.inject.Inject;
@@ -82,7 +81,7 @@ public class TTSPlugin extends Plugin
 
 			String npcName = client.getWidget(WidgetInfo.DIALOG_NPC_NAME).getText();
 			try {
-				ttsEngine.textToSpeech(strippedNpcText);
+				ttsEngine.textToSpeechNpc(strippedNpcText);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -97,7 +96,15 @@ public class TTSPlugin extends Plugin
 			String playerText = playerDialogueTextWidget.getText();
 			lastPlayerDialogueText = playerText;
 
-			System.out.println("Player: " + playerText);
+			String strippedPlayerText = playerText.replace("<br>", " ");
+
+			System.out.println("Player: " + strippedPlayerText);
+
+			try {
+				ttsEngine.textToSpeechPlayer(strippedPlayerText);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 //
 //		Widget playerDialogueOptionsWidget = client.getWidget(WidgetID.DIALOG_OPTION_GROUP_ID, 1);

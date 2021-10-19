@@ -3,12 +3,16 @@ package com.bsh.engine;
 import java.io.*;
 
 import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 
+import lombok.extern.slf4j.Slf4j;
 import marytts.LocalMaryInterface;
 import marytts.exceptions.MaryConfigurationException;
 import marytts.exceptions.SynthesisException;
 import marytts.util.data.audio.MaryAudioUtils;
 
+@Slf4j
 public class MaryTTSEngine implements AbstractEngine {
 
     static final String NAME = "txt2wav";
@@ -17,10 +21,10 @@ public class MaryTTSEngine implements AbstractEngine {
     static final String VOICE_OPT = "voice";
 
     @Override
-    public byte[] textToSpeech(String input) throws IOException {
+    public byte[] textToSpeechNpc(String input) throws IOException {
 
         // get output option
-        String outputFileName = "output.mp3";
+        String outputFileName = "output.wav";
 
         // get inputthe voice name
         String voiceName = "cmu-slt-hsmm";
@@ -72,6 +76,21 @@ public class MaryTTSEngine implements AbstractEngine {
             System.err.println("Could not write to file: " + outputFileName + "\n" + e.getMessage());
         }
 
+        try {
+            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(outputFileName).getAbsoluteFile());
+            Clip clip = AudioSystem.getClip();
+            clip.open(audioInputStream);
+            clip.start();
+        } catch(Exception ex) {
+            System.out.println("Error with playing sound.");
+            ex.printStackTrace();
+        }
+
         return null;
+    }
+
+    @Override
+    public byte[] textToSpeechPlayer(String input) throws IOException {
+        return new byte[0];
     }
 }
