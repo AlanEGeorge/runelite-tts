@@ -1,8 +1,9 @@
-package com.bsh;
+package com.runelitetts;
 
-import com.bsh.engine.GoogleCloudEngine;
-import com.bsh.engine.MaryTTSEngine;
-import com.bsh.engine.TTSEngine;
+import com.runelitetts.engine.AbstractEngine;
+import com.runelitetts.engine.GoogleCloudEngine;
+//import com.bsh.engine.MaryTTSEngine;
+import com.runelitetts.engine.TTSEngine;
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;
 
@@ -12,8 +13,9 @@ public class TTSPluginTest
 	public static void main(String[] args) throws Exception
 	{
 //		final TTSEngine googleCloudEngine = new TTSEngine(GoogleCloudEngine.class);
-//		googleCloudEngine.textToSpeech("Hello from Google");
-//		googleCloudEngine.textToSpeech("This should interrupt");
+//		googleCloudEngine.textToSpeech(AbstractEngine.SpeechType.PLAYER_MAN, "Hello, I am a player.");
+////		Thread.sleep(4000);
+//		googleCloudEngine.textToSpeech(AbstractEngine.SpeechType.NPC_MAN, "Hello, I am an NPC.");
 //
 //		googleCloudEngine.shutdown();
 

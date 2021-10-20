@@ -1,4 +1,4 @@
-package com.bsh;
+package com.runelitetts;
 
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;

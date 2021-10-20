@@ -1,14 +1,17 @@
-package com.bsh;
+package com.runelitetts;
 
-import com.bsh.engine.GoogleCloudEngine;
-import com.bsh.engine.TTSEngine;
+import com.runelitetts.engine.AbstractEngine;
+import com.runelitetts.engine.GoogleCloudEngine;
+import com.runelitetts.engine.TTSEngine;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -28,6 +31,10 @@ public class TTSPlugin extends Plugin
 	private Widget[] dialogueOptions;
 
 	private final TTSEngine ttsEngine = new TTSEngine(GoogleCloudEngine.class);
+
+	private static final int WIDGET_CHILD_ID_DIALOG_PLAYER_CLICK_HERE_TO_CONTINUE = 4;
+	private static final int WIDGET_CHILD_ID_DIALOG_NPC_CLICK_HERE_TO_CONTINUE = 4;
+	private static final int WIDGET_CHILD_ID_DIALOG_PLAYER_NAME = 3; // For some reason there is no WidgetInfo for this despite there being an (innaccessible to me) wi
 
 	@Inject
 	private Client client;
@@ -56,23 +63,32 @@ public class TTSPlugin extends Plugin
 		}
 	}
 
+	/**
+	 * This subscription is used to cancel audio that's currently playing when the user clicks the "continue" blue text.
+	 * This does NOT handle spacebar hotkey skipping.
+	 * @param event
+	 */
+	@Subscribe
+	public void onMenuOptionClicked(MenuOptionClicked event) {
+		final int groupId = WidgetInfo.TO_GROUP(event.getWidgetId());
+		final int childId = WidgetInfo.TO_CHILD(event.getWidgetId());
+
+		// Stop playing audio if the user clicks continue on a dialog option and the NPC is speaking
+		if (groupId == WidgetID.DIALOG_NPC_GROUP_ID && childId == WIDGET_CHILD_ID_DIALOG_NPC_CLICK_HERE_TO_CONTINUE) {
+			ttsEngine.stopAudio();
+		// Stop playing audio if the user clicks continue on a dialog option and the player is speaking
+		} else if (groupId == WidgetID.DIALOG_PLAYER_GROUP_ID && childId == WIDGET_CHILD_ID_DIALOG_PLAYER_CLICK_HERE_TO_CONTINUE) {
+			ttsEngine.stopAudio();
+		}
+	}
+
 	@Subscribe
 	public void onGameTick(GameTick tick) {
+
 		Widget npcDialogueTextWidget = client.getWidget(WidgetInfo.DIALOG_NPC_TEXT);
 
 		// Convert the NPC dialog into speech only if we haven't seen it before
 		if (npcDialogueTextWidget != null && npcDialogueTextWidget.getText() != lastNpcDialogueText) {
-			final int npcId = npcDialogueTextWidget.getId();
-
-			for (NPC npc : client.getNpcs()) {
-				// We found the NPC we're talking to
-				if (npc.getId() == npcId) {
-					for (Node param : npc.getComposition().getParams()) {
-						log.info("Param: " + param.toString());
-					}
-				}
-			}
-
 			String npcText = npcDialogueTextWidget.getText();
 			lastNpcDialogueText = npcText;
 
@@ -81,12 +97,12 @@ public class TTSPlugin extends Plugin
 
 			String npcName = client.getWidget(WidgetInfo.DIALOG_NPC_NAME).getText();
 			try {
-				ttsEngine.textToSpeechNpc(strippedNpcText);
+				ttsEngine.textToSpeech(AbstractEngine.SpeechType.NPC_MAN, strippedNpcText, true);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 
-			System.out.println(npcName + ": " + strippedNpcText);
+			log.info(npcName + ": " + strippedNpcText);
 		}
 
 		// This should be in WidgetInfo under DialogPlayer, but isn't currently.
@@ -98,22 +114,22 @@ public class TTSPlugin extends Plugin
 
 			String strippedPlayerText = playerText.replace("<br>", " ");
 
-			System.out.println("Player: " + strippedPlayerText);
+			log.info("Player: " + strippedPlayerText);
 
 			try {
-				ttsEngine.textToSpeechPlayer(strippedPlayerText);
+				ttsEngine.textToSpeech(AbstractEngine.SpeechType.PLAYER_MAN, strippedPlayerText, true);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
-//
-//		Widget playerDialogueOptionsWidget = client.getWidget(WidgetID.DIALOG_OPTION_GROUP_ID, 1);
-//		if (playerDialogueOptionsWidget != null && playerDialogueOptionsWidget.getChildren() != dialogueOptions) {
-//			dialogueOptions = playerDialogueOptionsWidget.getChildren();
-//			for (int i = 1; i < dialogueOptions.length - 2; i++) {
-//				System.out.println(dialogueOptions[i].getText());
-//			}
-//		}
+
+		Widget playerDialogueOptionsWidget = client.getWidget(WidgetID.DIALOG_OPTION_GROUP_ID, 1);
+		if (playerDialogueOptionsWidget != null && playerDialogueOptionsWidget.getChildren() != dialogueOptions) {
+			dialogueOptions = playerDialogueOptionsWidget.getChildren();
+			for (int i = 1; i < dialogueOptions.length - 2; i++) {
+				System.out.println(dialogueOptions[i].getText());
+			}
+		}
 	}
 
 	@Provides
