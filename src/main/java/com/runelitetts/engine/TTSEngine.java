@@ -41,18 +41,14 @@ public class TTSEngine<T extends AbstractEngine> {
 
     public void shutdown() {
         log.info("TTSEngine shutdown");
-        try {
-            audioFuture.get();
-        } catch (Exception ex) {
-            log.warn("Received exception while cancelling audio", ex);
-        }
+        stopAudio();
         executorService.shutdownNow();
     }
 
-    public void textToSpeech(final AbstractEngine.SpeechType speechType, final String input, final boolean cancelOthers) throws IOException {
+    public void textToSpeech(final AbstractEngine.SpeechType speechType, final String input, final boolean stopAudio) throws IOException {
         final byte[] result = engineImpl.textToMp3Bytes(speechType, input);
 
-        playAudio(input, result, cancelOthers);
+        playAudio(input, result, stopAudio);
     }
 
     public void playAudio(final String input, final byte[] mp3Data, final boolean cancelOthers) throws IOException {

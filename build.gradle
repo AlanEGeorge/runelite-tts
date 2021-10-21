@@ -13,7 +13,7 @@ repositories {
 	jcenter()
 }
 
-def runeLiteVersion = '1.7.26'
+def runeLiteVersion = '1.7.27'
 
 dependencies {
 	compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
@@ -33,6 +33,9 @@ dependencies {
 	compile(group: 'de.dfki.mary', name: 'voice-cmu-slt-hsmm', version: '5.2') {
 		exclude group: 'org.slf4j', module: 'slf4j-log4j12'
 	}
+//	compile(group: 'de.dfki.mary', name: 'voice-cmu-awb-time', version: '5.2.1') {
+//		exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+//	}
 
 	testImplementation 'junit:junit:4.12'
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
