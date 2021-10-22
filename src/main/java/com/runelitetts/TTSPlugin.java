@@ -5,6 +5,8 @@ import com.runelitetts.engine.GoogleCloudEngine;
 import com.runelitetts.engine.TTSEngine;
 import com.google.inject.Provides;
 import javax.inject.Inject;
+
+import com.runelitetts.player.MP3Player;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
@@ -35,7 +37,7 @@ public class TTSPlugin extends Plugin
 	private String lastPlayerDialogueText = null;
 	private Widget[] dialogueOptions;
 
-	private final TTSEngine ttsEngine = new TTSEngine(GoogleCloudEngine.class);
+	private final TTSEngine ttsEngine = new TTSEngine(GoogleCloudEngine.class, MP3Player.class);
 
 	private static final int WIDGET_CHILD_ID_DIALOG_PLAYER_CLICK_HERE_TO_CONTINUE = 4;
 	private static final int WIDGET_CHILD_ID_DIALOG_NPC_CLICK_HERE_TO_CONTINUE = 4;

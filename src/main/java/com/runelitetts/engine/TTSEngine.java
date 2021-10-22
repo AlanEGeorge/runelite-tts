@@ -1,5 +1,7 @@
 package com.runelitetts.engine;
 
+import com.runelitetts.player.AbstractPlayer;
+import com.runelitetts.player.MP3Player;
 import javazoom.jl.decoder.JavaLayerException;
 import javazoom.jl.player.Player;
 import lombok.extern.slf4j.Slf4j;
@@ -7,20 +9,23 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 @Slf4j
-public class TTSEngine<T extends AbstractEngine> {
+public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
 
-    private T engineImpl;
+    private E engineImpl;
+    private P playerImpl;
+
     private ExecutorService executorService;
-    private Future<?> audioFuture;
+    ConcurrentHashMap<Long, Player> playerMap;
 
-    private Player mp3Player;
+    AbstractPlayer player;
 
-    public TTSEngine(Class<T> abstractEngineType) {
+    public TTSEngine(Class<E> abstractEngineType, Class<P> abstractPlayerType) {
         try {
             engineImpl = abstractEngineType.getDeclaredConstructor().newInstance();
 
@@ -31,54 +36,53 @@ public class TTSEngine<T extends AbstractEngine> {
     }
 
     public void stopAudio() {
-        if (mp3Player != null && !mp3Player.isComplete()) {
-            mp3Player.close();
-            log.info("Stopped currently playing audio");
-
-            mp3Player.isComplete();
+        if (player != null) {
+            player.stop();
+        } else {
+            log.warn("Cannot stop audio: player is null");
         }
     }
 
     public void shutdown() {
+        player.await();
+        stopAudio();
+        executorService.shutdown();
         log.info("TTSEngine shutdown");
+    }
+
+    public void shutdownNow() {
         stopAudio();
         executorService.shutdownNow();
+        log.info("TTSEngine shutdown");
     }
 
-    public void textToSpeech(final AbstractEngine.SpeechType speechType, final String input, final boolean stopAudio) throws IOException {
+    public void textToSpeech(final AbstractEngine.SpeechType speechType, final String input, final boolean interruptOthers) throws IOException {
         final byte[] result = engineImpl.textToMp3Bytes(speechType, input);
 
-        playAudio(input, result, stopAudio);
+        playAudio(input, result, interruptOthers);
     }
 
-    public void playAudio(final String input, final byte[] mp3Data, final boolean cancelOthers) throws IOException {
-        if (mp3Data == null) {
+    public void playAudio(final String input, final byte[] audioData, final boolean interruptOthers) throws IOException {
+        if (audioData == null) {
             throw new IOException("Text conversion result was null");
         }
 
-        InputStream myInputStream = new ByteArrayInputStream(mp3Data);
-
         // Cancel existing playing audio
-        if (cancelOthers) {
+        if (interruptOthers) {
             stopAudio();
         }
 
-        try {
-            mp3Player = new Player(myInputStream);
+        player = new MP3Player(audioData);
 
-            audioFuture = executorService.submit(() -> {
-                try {
-                    log.info("Playing audio: " + input);
-                    mp3Player.play();
-                    log.info("Completed playing audio: " + input);
-                } catch (Exception ex) {
-                    log.error("Exception occurred while playing audio", ex);
-                }
-            });
-
-        } catch (JavaLayerException ex) {
-            throw new IOException("Failed to play MP3", ex);
-        }
+        executorService.execute(() -> {
+            try {
+                log.info("Playing audio: " + input);
+                player.play(audioData);
+                log.info("Completed playing audio: " + input);
+            } catch (Exception ex) {
+                log.error("Exception occurred while playing audio", ex);
+            }
+        });
     }
 
 }
