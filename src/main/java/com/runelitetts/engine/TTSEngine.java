@@ -2,17 +2,10 @@ package com.runelitetts.engine;
 
 import com.runelitetts.player.AbstractPlayer;
 import com.runelitetts.player.MP3Player;
-import javazoom.jl.decoder.JavaLayerException;
-import javazoom.jl.player.Player;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 @Slf4j
 public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
@@ -21,30 +14,41 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
     private P playerImpl;
 
     private ExecutorService executorService;
-    ConcurrentHashMap<Long, Player> playerMap;
 
-    AbstractPlayer player;
+    ConcurrentHashMap<Long, AbstractPlayer> playerQueue;
 
     public TTSEngine(Class<E> abstractEngineType, Class<P> abstractPlayerType) {
         try {
             engineImpl = abstractEngineType.getDeclaredConstructor().newInstance();
 
-            executorService = Executors.newSingleThreadExecutor();
+            executorService = Executors.newCachedThreadPool();
+
+            playerQueue = new ConcurrentHashMap<>();
         } catch (Exception ex) {
             throw new RuntimeException("Failed to construct TTSEngine", ex);
         }
     }
 
     public void stopAudio() {
-        if (player != null) {
-            player.stop();
-        } else {
-            log.warn("Cannot stop audio: player is null");
-        }
+        playerQueue.forEach((time, player) -> {
+            if (player != null) {
+                player.stop();
+            } else {
+                log.warn("Cannot stop audio: player is null");
+            }
+        });
+        playerQueue.clear();
     }
 
     public void shutdown() {
-        player.await();
+        playerQueue.forEach((time, player) -> {
+            if (player != null) {
+                player.await();
+            } else {
+                log.warn("Cannot await on audio: player is null");
+            }
+        });
+        playerQueue.clear();
         stopAudio();
         executorService.shutdown();
         log.info("TTSEngine shutdown");
@@ -72,13 +76,19 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
             stopAudio();
         }
 
-        player = new MP3Player(audioData);
+        AbstractPlayer player = new MP3Player(audioData);
+        final long currentTime = System.currentTimeMillis();
+        playerQueue.put(currentTime, player);
+        log.info("Added player to the queue (current size: " + playerQueue.size() + ")");
 
         executorService.execute(() -> {
             try {
                 log.info("Playing audio: " + input);
                 player.play(audioData);
                 log.info("Completed playing audio: " + input);
+
+                playerQueue.remove(currentTime);
+                log.info("Removed player from queue (current size: " + playerQueue.size() + ")");
             } catch (Exception ex) {
                 log.error("Exception occurred while playing audio", ex);
             }

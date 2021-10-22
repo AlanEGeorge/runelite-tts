@@ -9,6 +9,7 @@ import javax.inject.Inject;
 import com.runelitetts.player.MP3Player;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuOptionClicked;
@@ -43,6 +44,8 @@ public class TTSPlugin extends Plugin
 	private static final int WIDGET_CHILD_ID_DIALOG_NPC_CLICK_HERE_TO_CONTINUE = 4;
 	private static final int WIDGET_CHILD_ID_DIALOG_PLAYER_NAME = 3;
 
+	private boolean inNpcDialog;
+
 	private HotkeyListener spacebarListener = new HotkeyListener(this::provider )
 	{
 		@Override
@@ -65,22 +68,24 @@ public class TTSPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		log.info("Example started!");
+		inNpcDialog = false;
+		log.info("TTS started!");
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
-		log.info("Example stopped!");
+		log.info("TTS stopped!");
+		ttsEngine.shutdownNow();
 	}
 
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
-		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
-		{
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Example says " + config.greeting(), null);
-		}
+//		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
+//		{
+//			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Example says " + config.drawDistance(), null);
+//		}
 	}
 
 	/**
@@ -99,6 +104,26 @@ public class TTSPlugin extends Plugin
 		// Stop playing audio if the user clicks continue on a dialog option and the player is speaking
 		} else if (groupId == WidgetID.DIALOG_PLAYER_GROUP_ID && childId == WIDGET_CHILD_ID_DIALOG_PLAYER_CLICK_HERE_TO_CONTINUE) {
 			ttsEngine.stopAudio();
+		}
+	}
+
+	/**
+	 * Convert chat messages into speech.
+	 * @param event
+	 */
+	@Subscribe
+	public void onChatMessage(ChatMessage event) {
+
+		log.info("My username: " + client.getUsername());
+
+		// Play other player's chat
+		if (config.speakOtherPlayerMessages() && event.getType() == ChatMessageType.PUBLICCHAT && event.getName() != client.getUsername()) {
+			try {
+				log.info(event.getName() + ": " + event.getMessage());
+				ttsEngine.textToSpeech(AbstractEngine.SpeechType.NPC_MAN, TextSanitizer.adjustPronunciations(event.getMessage()), false);
+			} catch (IOException ex) {
+				log.error("Failed to play player dialog", ex);
+			}
 		}
 	}
 

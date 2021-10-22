@@ -18,11 +18,17 @@ public class TTSPluginTest
 
 	public static void main(String[] args) throws Exception
 	{
-		final TTSEngine googleCloudEngine = new TTSEngine(GoogleCloudEngine.class, MP3Player.class);
-		googleCloudEngine.textToSpeech(AbstractEngine.SpeechType.PLAYER_MAN, "Hello, I am a player.", false);
-		googleCloudEngine.textToSpeech(AbstractEngine.SpeechType.PLAYER_MAN, "Hello, I am a player also.", false);
-//
-		googleCloudEngine.shutdown();
+		ExternalPluginManager.loadBuiltin(TTSPlugin.class);
+		RuneLite.main(args);
+
+//		final TTSEngine googleCloudEngine = new TTSEngine(GoogleCloudEngine.class, MP3Player.class);
+//		googleCloudEngine.textToSpeech(AbstractEngine.SpeechType.PLAYER_MAN, "Anyone have 100k", false);
+//		Thread.sleep(200);
+//		googleCloudEngine.textToSpeech(AbstractEngine.SpeechType.PLAYER_MAN, "Dancing for money", false);
+//		Thread.sleep(200);
+//		googleCloudEngine.textToSpeech(AbstractEngine.SpeechType.PLAYER_MAN, "I am not familiar with opensource in this area.", false);
+////
+//		googleCloudEngine.shutdown();
 
 //		final TTSEngine maryTtsEngine = new TTSEngine(MaryTTSEngine.class);
 //		maryTtsEngine.textToSpeech(AbstractEngine.SpeechType.NPC_MAN, "Hello, I am an NPC.", false);
@@ -37,10 +43,7 @@ public class TTSPluginTest
 //			Thread.sleep(10);
 //		clip.close();
 
-		Thread.sleep(1000);
-
-//		ExternalPluginManager.loadBuiltin(TTSPlugin.class);
-//		RuneLite.main(args);
+//		Thread.sleep(1000);
 
 //		final String exampleDialogue = "The chance to get a higher tier clue from geodes, bottles and nests is lower the higher the tier. But if you chop down higher-level trees you will have a higher chance of receiving a nest which contains a clue. Same with fishing and mining.";
 //		final String test = "Hello Amelia, this is a computer!";
