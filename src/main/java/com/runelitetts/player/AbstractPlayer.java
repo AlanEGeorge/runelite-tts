@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public abstract class AbstractPlayer {
 
-    public abstract void play(final byte[] audioData) throws IOException;
+    public abstract void play() throws IOException;
 
     public abstract void stop();
 

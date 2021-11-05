@@ -18,12 +18,12 @@ public class MP3Player extends AbstractPlayer {
             InputStream myInputStream = new ByteArrayInputStream(audioData);
             mp3Player = new Player(myInputStream);
         } catch (JavaLayerException ex) {
-            throw new RuntimeException("Failed to play MP3", ex);
+            throw new RuntimeException("Failed to create MP3Player", ex);
         }
     }
 
     @Override
-    public void play(final byte[] audioData) throws IOException {
+    public void play() throws IOException {
         try {
             mp3Player.play();
         } catch (JavaLayerException ex) {

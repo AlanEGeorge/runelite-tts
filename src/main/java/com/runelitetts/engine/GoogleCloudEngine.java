@@ -50,7 +50,7 @@ public class GoogleCloudEngine extends AbstractEngine {
     }
 
     @Override
-    public byte[] textToMp3Bytes(final SpeechType speechType, final String input) throws IOException {
+    public byte[] textToAudio(final SpeechType speechType, final String input) throws IOException {
 
         // Set the text input to be synthesized
         SynthesisInput synthesisInput = SynthesisInput.newBuilder().setText(input).build();

@@ -19,6 +19,6 @@ public abstract class AbstractEngine {
      * @param input text input to convert to speech
      * @param outputStream a pointer to the output stream to write the speech to
      */
-    public abstract byte[] textToMp3Bytes(final SpeechType speechType, final String input) throws IOException;
+    public abstract byte[] textToAudio(final SpeechType speechType, final String input) throws IOException;
 
 }

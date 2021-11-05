@@ -2,6 +2,8 @@ package com.runelitetts.engine;
 
 import com.runelitetts.player.AbstractPlayer;
 import com.runelitetts.player.MP3Player;
+//import com.runelitetts.player.WavPlayer;
+import com.runelitetts.player.WavPlayer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -61,7 +63,7 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
     }
 
     public void textToSpeech(final AbstractEngine.SpeechType speechType, final String input, final boolean interruptOthers) throws IOException {
-        final byte[] result = engineImpl.textToMp3Bytes(speechType, input);
+        final byte[] result = engineImpl.textToAudio(speechType, input);
 
         playAudio(input, result, interruptOthers);
     }
@@ -76,7 +78,8 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
             stopAudio();
         }
 
-        AbstractPlayer player = new MP3Player(audioData);
+        AbstractPlayer player = new WavPlayer(audioData);
+        log.info("Created new " + player.toString());
         final long currentTime = System.currentTimeMillis();
         playerQueue.put(currentTime, player);
         log.info("Added player to the queue (current size: " + playerQueue.size() + ")");
@@ -84,7 +87,7 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
         executorService.execute(() -> {
             try {
                 log.info("Playing audio: " + input);
-                player.play(audioData);
+                player.play();
                 log.info("Completed playing audio: " + input);
 
                 playerQueue.remove(currentTime);

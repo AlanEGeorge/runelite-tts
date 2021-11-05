@@ -13,7 +13,7 @@ repositories {
 	jcenter()
 }
 
-def runeLiteVersion = '1.7.27'
+def runeLiteVersion = '1.8.1'
 
 dependencies {
 	compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
@@ -24,6 +24,13 @@ dependencies {
 	// Dependencies needed for Google Cloud
 	implementation platform('com.google.cloud:libraries-bom:23.1.0')
 	implementation 'com.google.cloud:google-cloud-texttospeech'
+
+	// MaryTTS local jars
+	implementation files('lib/voice-cmu-bdl-hsmm-5.2.jar')
+	implementation files('lib/voice-cmu-rms-hsmm-5.2.jar')
+	implementation files('lib/voice-dfki-obadiah-5.2.jar')
+	implementation files('lib/voice-dfki-poppy-5.2.jar')
+	implementation files('lib/voice-dfki-prudence-hsmm-5.2.jar')
 
 	// https://mvnrepository.com/artifact/javazoom/jlayer
 	implementation group: 'javazoom', name: 'jlayer', version: '1.0.1'
@@ -48,7 +55,7 @@ configurations.all {
 
 group = 'com.example'
 version = '1.0-SNAPSHOT'
-sourceCompatibility = '1.8'
+sourceCompatibility = "11"
 
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
@@ -90,3 +97,5 @@ def listConfigurationDependencies(Configuration configuration) {
 	}
 	println(out)
 }
+
+targetCompatibility = JavaVersion.VERSION_11

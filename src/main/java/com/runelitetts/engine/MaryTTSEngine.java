@@ -1,5 +1,6 @@
 package com.runelitetts.engine;
 
+import com.google.common.io.ByteSource;
 import lombok.extern.slf4j.Slf4j;
 import marytts.LocalMaryInterface;
 import marytts.exceptions.MaryConfigurationException;
@@ -11,83 +12,69 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Slf4j
 public class MaryTTSEngine extends AbstractEngine {
 
-    static final String NAME = "txt2wav";
-    static final String IN_OPT = "input";
-    static final String OUT_OPT = "output";
-    static final String VOICE_OPT = "voice";
+    private static final String NAME = "txt2wav";
+    private static final String IN_OPT = "input";
+    private static final String OUT_OPT = "output";
+    private static final String VOICE_OPT = "voice";
+
+//    private static final String voiceName = "dfki-prudence-hsmm";
+//        String voiceName = "cmu-slt-hsmm";
+//        String voiceName = "cmu-bdl-hsmm";
+//        String voiceName = "cmu-rms-hsmm";
+    private static final String voiceName = "dfki-obadiah";
+//        String voiceName = "dfki-poppy";
+
+    private LocalMaryInterface localMaryInterface;
+
+    public MaryTTSEngine() {
+        try {
+            localMaryInterface = new LocalMaryInterface();
+            log.info("MaryTTS available voices: " + localMaryInterface.getAvailableVoices());
+
+            // Set voice / language
+            localMaryInterface.setVoice(voiceName);
+            log.info("Set voice to: " + voiceName);
+        } catch (MaryConfigurationException ex) {
+            throw new RuntimeException("Could not initialize MaryTTS interface", ex);
+        }
+    }
 
     @Override
-    public byte[] textToMp3Bytes(final SpeechType speechType, final String input) throws IOException {
+    public byte[] textToAudio(final SpeechType speechType, final String input) throws IOException {
 
-        // get output option
-        String outputFileName = "output.wav";
-
-        // get inputthe voice name
-        String voiceName = "cmu-slt-hsmm";
-
-        // init mary
-        LocalMaryInterface mary = null;
-        try {
-            mary = new LocalMaryInterface();
-        } catch (MaryConfigurationException e) {
-            throw new IOException("Could not initialize MaryTTS interface", e);
-        }
-
-        log.info("MaryTTS available voices: " + mary.getAvailableVoices());
-
-        // Set voice / language
-        mary.setVoice(voiceName);
+        // Create unique file name
+        final String outputFileName = "runelite-tts-" + System.currentTimeMillis() + ".wav";
 
         // synthesize
         AudioInputStream audio = null;
         try {
-            audio = mary.generateAudio(input);
-        } catch (SynthesisException e) {
-            System.err.println("Synthesis failed: " + e.getMessage());
-            System.exit(1);
-        }
+            audio = localMaryInterface.generateAudio(input);
 
-        // write to output
-        double[] samples = MaryAudioUtils.getSamplesAsDoubleArray(audio);
+            // write to output
+            final double[] samples = MaryAudioUtils.getSamplesAsDoubleArray(audio);
 
-//        ByteBuffer bb = ByteBuffer.allocate(samples.length * 8);
-//        for(double d : samples) {
-//            bb.putDouble(d);
-//        }
-//
-//        InputStream myInputStream = new ByteArrayInputStream(bb.array());
-//
-//        Thread test = new Thread(() -> {
-//            try{
-////                    FileInputStream fis = new FileInputStream("output.mp3");
-//                Player playMP3 = new Player(myInputStream);
-//
-//                playMP3.play();
-//            } catch(Exception e){System.out.println(e);}
-//        });
-//
-//        test.start();
-        try {
             MaryAudioUtils.writeWavFile(samples, outputFileName, audio.getFormat());
-            System.out.println("Output written to " + outputFileName);
-        } catch (IOException e) {
-            System.err.println("Could not write to file: " + outputFileName + "\n" + e.getMessage());
-        }
+            log.info("Created file: " + outputFileName);
 
-        try {
-            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(outputFileName).getAbsoluteFile());
-            Clip clip = AudioSystem.getClip();
-            clip.open(audioInputStream);
-            clip.start();
-        } catch(Exception ex) {
-            System.out.println("Error with playing sound.");
-            ex.printStackTrace();
-        }
+            final byte[] result = Files.readAllBytes(Path.of(outputFileName));
+            log.info("Read file of size: " + result.length);
 
-        return null;
+            File file = new File(outputFileName);
+            if (!file.delete()) {
+                log.error("Failed to delete file: " + outputFileName);
+            }
+
+            return result;
+        } catch (final Exception ex) {
+            throw new IOException("MaryTTS synthesis failed", ex);
+        }
     }
 }
