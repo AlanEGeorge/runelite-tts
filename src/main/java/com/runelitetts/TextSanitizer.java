@@ -1,5 +1,6 @@
 package com.runelitetts;
 
+import com.google.api.gax.rpc.InvalidArgumentException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -31,8 +32,28 @@ public class TextSanitizer {
         });
     }
 
+    public static String sanitizePlayerName(final String input) {
+        if (input == null) {
+            throw new IllegalArgumentException("Input was null");
+        }
+
+        String result = input;
+
+        // strips off all non-ASCII characters
+        result = result.replaceAll("[^\\x00-\\x7F]", " ");
+
+        // erases all the ASCII control characters
+        result = result.replaceAll("[\\p{Cntrl}&&[^\r\n\t]]", " ");
+
+        // removes non-printable characters from Unicode
+        result = result.replaceAll("\\p{C}", " ");
+
+        return result;
+    }
+
     public static String removeFormatting(final String input) {
         String result = input.replaceAll("<br>", "\\\n");
+        result = result.replace("<img=[0-9]+>", ""); // Iron man images
         result = result.replaceAll("</col>", ".");
         result = result.replaceAll("<col=[0-9a-f]+>", "");
 
@@ -47,8 +68,8 @@ public class TextSanitizer {
 
         String[] tokens = cleanInput.split(String.format (REGEX_KEEP_DELIMITER, "[\"?!., ]"));
 
-        log.info("Input string: " + input);
-        log.info("Tokens: " + Arrays.toString(tokens));
+        log.debug("Input string: " + input);
+        log.debug("Tokens: " + Arrays.toString(tokens));
         for (int i = 0; i < tokens.length; i++) {
             String token = tokens[i];
             if (literalPronunciationMap.keySet().contains(token)) {
@@ -61,7 +82,7 @@ public class TextSanitizer {
         // Combine tokens into single string
         final String result = String.join("", tokens);
 
-        log.info("Result string: " + result);
+        log.debug("Result string: " + result);
 
         return result;
     }

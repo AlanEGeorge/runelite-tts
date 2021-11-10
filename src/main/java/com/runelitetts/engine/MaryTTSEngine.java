@@ -20,17 +20,23 @@ import java.nio.file.Path;
 @Slf4j
 public class MaryTTSEngine extends AbstractEngine {
 
-    private static final String NAME = "txt2wav";
-    private static final String IN_OPT = "input";
-    private static final String OUT_OPT = "output";
-    private static final String VOICE_OPT = "voice";
+    // The following voices are arranged in best to worst
 
-//    private static final String voiceName = "dfki-prudence-hsmm";
-//        String voiceName = "cmu-slt-hsmm";
-//        String voiceName = "cmu-bdl-hsmm";
-//        String voiceName = "cmu-rms-hsmm";
-    private static final String voiceName = "dfki-obadiah";
+    // Male, medium pitch voice. Decent all around
+//    private static final String voiceName = "cmu-bdl-hsmm";
+
+    // Male, low, slow voice. Sounds decent
+//    private static final String voiceName = "cmu-rms-hsmm";
+
+    // Female, poppy voice, sounds pretty decent, but a bit high
+    private static final String voiceName = "dfki-prudence-hsmm";
 //        String voiceName = "dfki-poppy";
+
+    // Male, low, deep voice, that's kinda hard to hear and the flow is strange
+//    private static final String voiceName = "dfki-obadiah";
+
+    // Female, medium pitch voice, pacing is weird
+//    private static final String voiceName = "cmu-slt-hsmm";
 
     private LocalMaryInterface localMaryInterface;
 
@@ -53,23 +59,21 @@ public class MaryTTSEngine extends AbstractEngine {
         // Create unique file name
         final String outputFileName = "runelite-tts-" + System.currentTimeMillis() + ".wav";
 
-        // synthesize
-        AudioInputStream audio = null;
         try {
-            audio = localMaryInterface.generateAudio(input);
+            // synthesize
+            final AudioInputStream audio = localMaryInterface.generateAudio(input);
 
             // write to output
             final double[] samples = MaryAudioUtils.getSamplesAsDoubleArray(audio);
 
+            // The MaryAudioUtils class does not have a way to generate a .wav file as a native byte array
+            // This code block writes the wav to file, reads in the bytes, and then deletes the file
             MaryAudioUtils.writeWavFile(samples, outputFileName, audio.getFormat());
-            log.info("Created file: " + outputFileName);
-
             final byte[] result = Files.readAllBytes(Path.of(outputFileName));
-            log.info("Read file of size: " + result.length);
 
             File file = new File(outputFileName);
             if (!file.delete()) {
-                log.error("Failed to delete file: " + outputFileName);
+                log.error("Failed to delete .wav file: " + outputFileName);
             }
 
             return result;

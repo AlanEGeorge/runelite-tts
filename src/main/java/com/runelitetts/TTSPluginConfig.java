@@ -40,10 +40,22 @@ public interface TTSPluginConfig extends Config {
 	}
 
 	@ConfigItem(
+			keyName = "proximityChatRadius",
+			name = "Proximity Chat Radius",
+			description = "Determines the radius for player speech.",
+			position = 3,
+			section = publicSettings
+	)
+	default int proximityChatRadius() {
+		return 10;
+	}
+
+
+	@ConfigItem(
 			keyName = "speakMyPublicMessages",
 			name = "Speak My Messages",
 			description = "If enabled, speaks my messages in public chat.",
-			position = 3,
+			position = 4,
 			section = publicSettings
 	)
 	default boolean speakMyPublicMessages() {
@@ -54,7 +66,7 @@ public interface TTSPluginConfig extends Config {
 	@ConfigSection(
 			name = "NPC",
 			description = "NPC text-to-speech settings",
-			position = 4,
+			position = 5,
 			closedByDefault = false
 	)
 	String npcSettings = "npcSettings";
@@ -63,7 +75,7 @@ public interface TTSPluginConfig extends Config {
 			keyName = "speakNpcToPlayerDialog",
 			name = "Speak NPC Dialog",
 			description = "If enabled, speaks NPC dialog in interaction windows.",
-			position = 5,
+			position = 6,
 			section = npcSettings
 	)
 	default boolean speakNpcToPlayerDialog() {

@@ -16,6 +16,15 @@ public class TextSanitizerTest {
     }
 
     @Test
+    public void testSanitizePlayerName() {
+        final String input = "this�contains�spaces";
+        final String result = textSanitizer.sanitizePlayerName(input);
+
+//        assertFalse(result.contains("�"));
+        assertEquals("sniff pantsu", result);
+    }
+
+    @Test
     public void testRemoveFormatting() {
         final String input = "<col=0000ff>This is a header</col><br>This would be on a new line.";
         final String result = TextSanitizer.removeFormatting(input);

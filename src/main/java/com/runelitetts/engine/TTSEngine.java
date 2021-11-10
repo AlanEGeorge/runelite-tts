@@ -1,8 +1,8 @@
 package com.runelitetts.engine;
 
 import com.runelitetts.player.AbstractPlayer;
-import com.runelitetts.player.MP3Player;
 //import com.runelitetts.player.WavPlayer;
+import com.runelitetts.player.MP3Player;
 import com.runelitetts.player.WavPlayer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -12,12 +12,15 @@ import java.util.concurrent.*;
 @Slf4j
 public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
 
+    // This is the upper bound for number of concurrent audio channels
+    private static final short MAX_AUDIO_CHANNELS = 3;
+
     private E engineImpl;
     private P playerImpl;
 
     private ExecutorService executorService;
 
-    ConcurrentHashMap<Long, AbstractPlayer> playerQueue;
+    private ConcurrentHashMap<Long, AbstractPlayer> audioPlayerQueue;
 
     public TTSEngine(Class<E> abstractEngineType, Class<P> abstractPlayerType) {
         try {
@@ -25,32 +28,32 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
 
             executorService = Executors.newCachedThreadPool();
 
-            playerQueue = new ConcurrentHashMap<>();
+            audioPlayerQueue = new ConcurrentHashMap<>();
         } catch (Exception ex) {
             throw new RuntimeException("Failed to construct TTSEngine", ex);
         }
     }
 
     public void stopAudio() {
-        playerQueue.forEach((time, player) -> {
+        audioPlayerQueue.forEach((time, player) -> {
             if (player != null) {
                 player.stop();
             } else {
                 log.warn("Cannot stop audio: player is null");
             }
         });
-        playerQueue.clear();
+        audioPlayerQueue.clear();
     }
 
     public void shutdown() {
-        playerQueue.forEach((time, player) -> {
+        audioPlayerQueue.forEach((time, player) -> {
             if (player != null) {
                 player.await();
             } else {
                 log.warn("Cannot await on audio: player is null");
             }
         });
-        playerQueue.clear();
+        audioPlayerQueue.clear();
         stopAudio();
         executorService.shutdown();
         log.info("TTSEngine shutdown");
@@ -73,29 +76,33 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
             throw new IOException("Text conversion result was null");
         }
 
+        // Check to see if we're at maximum audio channels
+        if (audioPlayerQueue.size() >= MAX_AUDIO_CHANNELS) {
+            return;
+        }
+
         // Cancel existing playing audio
         if (interruptOthers) {
             stopAudio();
         }
 
         AbstractPlayer player = new WavPlayer(audioData);
-        log.info("Created new " + player.toString());
+        log.debug("Created new " + player.toString());
         final long currentTime = System.currentTimeMillis();
-        playerQueue.put(currentTime, player);
-        log.info("Added player to the queue (current size: " + playerQueue.size() + ")");
+        audioPlayerQueue.put(currentTime, player);
+        log.debug("Added player to the queue (current size: " + audioPlayerQueue.size() + ")");
 
         executorService.execute(() -> {
             try {
-                log.info("Playing audio: " + input);
+                log.debug("Playing audio: " + input);
                 player.play();
-                log.info("Completed playing audio: " + input);
+                log.debug("Completed playing audio: " + input);
 
-                playerQueue.remove(currentTime);
-                log.info("Removed player from queue (current size: " + playerQueue.size() + ")");
+                audioPlayerQueue.remove(currentTime);
+                log.debug("Removed player from queue (current size: " + audioPlayerQueue.size() + ")");
             } catch (Exception ex) {
                 log.error("Exception occurred while playing audio", ex);
             }
         });
     }
-
 }

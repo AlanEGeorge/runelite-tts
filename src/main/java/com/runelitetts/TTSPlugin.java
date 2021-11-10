@@ -1,5 +1,6 @@
 package com.runelitetts;
 
+import com.google.api.gax.rpc.InvalidArgumentException;
 import com.runelitetts.engine.AbstractEngine;
 import com.runelitetts.engine.GoogleCloudEngine;
 import com.runelitetts.engine.MaryTTSEngine;
@@ -12,6 +13,8 @@ import com.runelitetts.player.WavPlayer;
 import lombok.extern.slf4j.Slf4j;
 import marytts.server.Mary;
 import net.runelite.api.*;
+import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
@@ -29,6 +32,7 @@ import net.runelite.client.util.HotkeyListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @PluginDescriptor(
@@ -38,6 +42,7 @@ public class TTSPlugin extends Plugin
 {
 	private TTSEngine ttsEngine;
 	private TextSanitizer textSanitizer;
+	private ConcurrentHashMap<String, String> playerSpamChecker;
 
 	private String lastDialogBoxText = "";
 	private String lastPlayerDialogueText = "";
@@ -78,6 +83,8 @@ public class TTSPlugin extends Plugin
 		textSanitizer = new TextSanitizer();
 //		ttsEngine = new TTSEngine(GoogleCloudEngine.class, MP3Player.class);
 		ttsEngine = new TTSEngine(MaryTTSEngine.class, WavPlayer.class);
+
+		playerSpamChecker = new ConcurrentHashMap<>();
 
 		log.info("TTS started!");
 	}
@@ -128,28 +135,77 @@ public class TTSPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event) {
 
-//		log.info("My username: " + client.getUsername());
+		try {
 
-		// Play other player's chat
-		if (config.speakPlayerPublicMessages() && event.getType() == ChatMessageType.PUBLICCHAT && event.getName() != client.getUsername()) {
-			final String playerName = event.getName();
-			final String playerMessage = event.getMessage();
+			// Play other player's chat
+			if (config.speakPlayerPublicMessages() && event.getType() == ChatMessageType.PUBLICCHAT && event.getName() != client.getUsername()) {
 
-			log.info(playerName + ": " + playerMessage);
+				final String playerName = textSanitizer.sanitizePlayerName(event.getName());
+				final String playerMessage = textSanitizer.sanitizePlayerName(event.getMessage());
 
-			// Prepend player name if enabled
-			String message = "";
-			if (config.speakNamePlayerPublicMessages()) {
-				message = playerName + " says: " + playerMessage;
-			} else {
-				message = playerMessage;
+				if (playerSpamChecker.containsKey(playerName)) {
+					final String lastPlayerMessage = playerSpamChecker.get(playerName);
+
+					if (playerMessage.equals(lastPlayerMessage)) {
+						log.info("Not playing repeat message from player: " + playerName);
+						return;
+					} else {
+						log.info("Messages didn't equal:\n" + playerMessage + "\n" + lastPlayerMessage);
+					}
+				}
+				playerSpamChecker.put(playerName, playerMessage);
+				log.info(playerName + ": " + playerMessage);
+
+				Player playerSpeaking = null;
+				String playerList = "";
+
+				for (Player player : client.getPlayers()) {
+					if (player.getName() == null) {
+
+					}
+					final String sanitizedPlayerName = textSanitizer.sanitizePlayerName(player.getName());
+
+					playerList += "\"" + sanitizedPlayerName + "\"" + "\n";
+
+					if (sanitizedPlayerName.equals(playerName)) {
+						playerSpeaking = player;
+						log.debug("Found player object: " + playerSpeaking.getName());
+						break;
+					}
+				}
+
+				final WorldPoint worldPoint = client.getLocalPlayer().getWorldLocation();
+				final LocalPoint localPoint = client.getLocalPlayer().getLocalLocation();
+
+				if (playerSpeaking == null) {
+					log.error("Failed to find player who spoke: \"" + playerName + "\"");
+					log.error("List of players: " + playerList);
+				} else if (worldPoint == null) {
+					log.error("Local player world point was null");
+				} else {
+					final int distance = playerSpeaking.getWorldLocation().distanceTo(worldPoint);
+					if (distance > config.proximityChatRadius()) {
+						log.debug("Not playing message, too far: " + distance + " (max radius is " + config.proximityChatRadius() + ")");
+						return;
+					}
+				}
+
+				// Prepend player name if enabled
+				String message = "";
+				if (config.speakNamePlayerPublicMessages()) {
+					message = playerName + " says: " + playerMessage;
+				} else {
+					message = playerMessage;
+				}
+
+				try {
+					ttsEngine.textToSpeech(AbstractEngine.SpeechType.NPC_MAN, textSanitizer.adjustPronunciations(message), false);
+				} catch (IOException ex) {
+					log.error("Failed to play player dialog", ex);
+				}
 			}
-
-			try {
-				ttsEngine.textToSpeech(AbstractEngine.SpeechType.NPC_MAN, textSanitizer.adjustPronunciations(message), false);
-			} catch (IOException ex) {
-				log.error("Failed to play player dialog", ex);
-			}
+		} catch (Exception ex) {
+			log.error("Failed to process chat message", ex);
 		}
 	}
 
@@ -251,7 +307,7 @@ public class TTSPlugin extends Plugin
 
 			final String strippedPlayerText = textSanitizer.removeFormatting(playerText);
 
-			log.info("Player: " + strippedPlayerText);
+			log.debug("Player: " + strippedPlayerText);
 
 			try {
 				ttsEngine.textToSpeech(AbstractEngine.SpeechType.PLAYER_MAN, textSanitizer.adjustPronunciations(playerText), true);
