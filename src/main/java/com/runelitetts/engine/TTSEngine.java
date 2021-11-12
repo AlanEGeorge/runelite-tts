@@ -7,6 +7,7 @@ import com.runelitetts.player.WavPlayer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.*;
 
 @Slf4j
@@ -16,7 +17,7 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
     private static final short MAX_AUDIO_CHANNELS = 3;
 
     private E engineImpl;
-    private P playerImpl;
+    private Class<P> abstractPlayerType;
 
     private ExecutorService executorService;
 
@@ -25,6 +26,7 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
     public TTSEngine(Class<E> abstractEngineType, Class<P> abstractPlayerType) {
         try {
             engineImpl = abstractEngineType.getDeclaredConstructor().newInstance();
+            this.abstractPlayerType = abstractPlayerType;
 
             executorService = Executors.newCachedThreadPool();
 
@@ -86,23 +88,27 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
             stopAudio();
         }
 
-        AbstractPlayer player = new WavPlayer(audioData);
-        log.debug("Created new " + player.toString());
-        final long currentTime = System.currentTimeMillis();
-        audioPlayerQueue.put(currentTime, player);
-        log.debug("Added player to the queue (current size: " + audioPlayerQueue.size() + ")");
+        try {
+            AbstractPlayer player = abstractPlayerType.getDeclaredConstructor(byte[].class).newInstance(audioData);
+            log.debug("Created new " + player.toString());
+            final long currentTime = System.currentTimeMillis();
+            audioPlayerQueue.put(currentTime, player);
+            log.debug("Added player to the queue (current size: " + audioPlayerQueue.size() + ")");
 
-        executorService.execute(() -> {
-            try {
-                log.debug("Playing audio: " + input);
-                player.play();
-                log.debug("Completed playing audio: " + input);
+            executorService.execute(() -> {
+                try {
+                    log.debug("Playing audio: " + input);
+                    player.play();
+                    log.debug("Completed playing audio: " + input);
 
-                audioPlayerQueue.remove(currentTime);
-                log.debug("Removed player from queue (current size: " + audioPlayerQueue.size() + ")");
-            } catch (Exception ex) {
-                log.error("Exception occurred while playing audio", ex);
-            }
-        });
+                    audioPlayerQueue.remove(currentTime);
+                    log.debug("Removed player from queue (current size: " + audioPlayerQueue.size() + ")");
+                } catch (Exception ex) {
+                    log.error("Exception occurred while playing audio", ex);
+                }
+            });
+        } catch (NoSuchMethodException|InvocationTargetException|InstantiationException|IllegalAccessException ex) {
+            throw new IOException("Failed to create AbstractPlayer object from dervied type", ex);
+        }
     }
 }

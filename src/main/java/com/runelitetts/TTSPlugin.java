@@ -134,15 +134,19 @@ public class TTSPlugin extends Plugin
 	 */
 	@Subscribe
 	public void onChatMessage(ChatMessage event) {
+		// Play other player's chat
+		if (config.speakPlayerPublicMessages() && event.getType() == ChatMessageType.PUBLICCHAT && event.getName() != client.getUsername()) {
 
-		try {
+			final String playerName = textSanitizer.sanitizePlayerName(event.getName());
+			final String playerMessage = textSanitizer.sanitizePlayerName(event.getMessage());
 
-			// Play other player's chat
-			if (config.speakPlayerPublicMessages() && event.getType() == ChatMessageType.PUBLICCHAT && event.getName() != client.getUsername()) {
+			// Feature: Speak my messages
+			if (playerName.equals(client.getLocalPlayer().getName()) && !config.speakMyPublicMessages()) {
+				return;
+			}
 
-				final String playerName = textSanitizer.sanitizePlayerName(event.getName());
-				final String playerMessage = textSanitizer.sanitizePlayerName(event.getMessage());
-
+			// Feature: Spam filter
+			if (!playerName.equals(client.getLocalPlayer().getName())) {
 				if (playerSpamChecker.containsKey(playerName)) {
 					final String lastPlayerMessage = playerSpamChecker.get(playerName);
 
@@ -155,57 +159,55 @@ public class TTSPlugin extends Plugin
 				}
 				playerSpamChecker.put(playerName, playerMessage);
 				log.info(playerName + ": " + playerMessage);
+			}
 
-				Player playerSpeaking = null;
-				String playerList = "";
+			Player playerSpeaking = null;
+			String playerList = "";
 
-				for (Player player : client.getPlayers()) {
-					if (player.getName() == null) {
+			for (Player player : client.getPlayers()) {
+				if (player.getName() == null) {
 
-					}
-					final String sanitizedPlayerName = textSanitizer.sanitizePlayerName(player.getName());
-
-					playerList += "\"" + sanitizedPlayerName + "\"" + "\n";
-
-					if (sanitizedPlayerName.equals(playerName)) {
-						playerSpeaking = player;
-						log.debug("Found player object: " + playerSpeaking.getName());
-						break;
-					}
 				}
+				final String sanitizedPlayerName = textSanitizer.sanitizePlayerName(player.getName());
 
-				final WorldPoint worldPoint = client.getLocalPlayer().getWorldLocation();
-				final LocalPoint localPoint = client.getLocalPlayer().getLocalLocation();
+				playerList += "\"" + sanitizedPlayerName + "\"" + "\n";
 
-				if (playerSpeaking == null) {
-					log.error("Failed to find player who spoke: \"" + playerName + "\"");
-					log.error("List of players: " + playerList);
-				} else if (worldPoint == null) {
-					log.error("Local player world point was null");
-				} else {
-					final int distance = playerSpeaking.getWorldLocation().distanceTo(worldPoint);
-					if (distance > config.proximityChatRadius()) {
-						log.debug("Not playing message, too far: " + distance + " (max radius is " + config.proximityChatRadius() + ")");
-						return;
-					}
-				}
-
-				// Prepend player name if enabled
-				String message = "";
-				if (config.speakNamePlayerPublicMessages()) {
-					message = playerName + " says: " + playerMessage;
-				} else {
-					message = playerMessage;
-				}
-
-				try {
-					ttsEngine.textToSpeech(AbstractEngine.SpeechType.NPC_MAN, textSanitizer.adjustPronunciations(message), false);
-				} catch (IOException ex) {
-					log.error("Failed to play player dialog", ex);
+				if (sanitizedPlayerName.equals(playerName)) {
+					playerSpeaking = player;
+					log.debug("Found player object: " + playerSpeaking.getName());
+					break;
 				}
 			}
-		} catch (Exception ex) {
-			log.error("Failed to process chat message", ex);
+
+			final WorldPoint worldPoint = client.getLocalPlayer().getWorldLocation();
+			final LocalPoint localPoint = client.getLocalPlayer().getLocalLocation();
+
+			if (playerSpeaking == null) {
+				log.error("Failed to find player who spoke: \"" + playerName + "\"");
+				log.error("List of players: " + playerList);
+			} else if (worldPoint == null) {
+				log.error("Local player world point was null");
+			} else {
+				final int distance = playerSpeaking.getWorldLocation().distanceTo(worldPoint);
+				if (distance > config.proximityChatRadius()) {
+					log.debug("Not playing message, too far: " + distance + " (max radius is " + config.proximityChatRadius() + ")");
+					return;
+				}
+			}
+
+			// Prepend player name if enabled
+			String message = "";
+			if (config.speakNamePlayerPublicMessages()) {
+				message = playerName + " says: " + playerMessage;
+			} else {
+				message = playerMessage;
+			}
+
+			try {
+				ttsEngine.textToSpeech(AbstractEngine.SpeechType.NPC_MAN, textSanitizer.adjustPronunciations(message), false);
+			} catch (IOException ex) {
+				log.error("Failed to play player dialog", ex);
+			}
 		}
 	}
 

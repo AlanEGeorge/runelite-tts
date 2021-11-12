@@ -65,15 +65,21 @@ public class TextSanitizer {
         String cleanInput = removeFormatting(input).toLowerCase();
 
         // Tokenize the string to ensure we're not replacing characters within existing words
-
         String[] tokens = cleanInput.split(String.format (REGEX_KEEP_DELIMITER, "[\"?!., ]"));
 
         log.debug("Input string: " + input);
         log.debug("Tokens: " + Arrays.toString(tokens));
         for (int i = 0; i < tokens.length; i++) {
             String token = tokens[i];
+
+            // Convert numbers and letters to monetary value
+            if (token.matches("[0-9]+\\.*[0-9]*b")) {
+                
+            }
+
+            // Replace pronunciations
             if (literalPronunciationMap.keySet().contains(token)) {
-                String replacement = literalPronunciationMap.get(token);
+                final String replacement = literalPronunciationMap.get(token);
                 log.debug("Replaced " + token + " with " + replacement);
                 tokens[i] = replacement;
             }
