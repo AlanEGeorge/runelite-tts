@@ -7,6 +7,7 @@ import com.runelitetts.player.WavPlayer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.*;
 
@@ -14,10 +15,12 @@ import java.util.concurrent.*;
 public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
 
     // This is the upper bound for number of concurrent audio channels
-    private static final short MAX_AUDIO_CHANNELS = 3;
+    private static final short MAX_AUDIO_CHANNELS = 10;
 
     private E engineImpl;
+
     private Class<P> abstractPlayerType;
+    private Constructor<P> abstractPlayerConstructor;
 
     private ExecutorService executorService;
 
@@ -27,6 +30,7 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
         try {
             engineImpl = abstractEngineType.getDeclaredConstructor().newInstance();
             this.abstractPlayerType = abstractPlayerType;
+            abstractPlayerConstructor = abstractPlayerType.getDeclaredConstructor(byte[].class);
 
             executorService = Executors.newCachedThreadPool();
 
@@ -89,7 +93,7 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
         }
 
         try {
-            AbstractPlayer player = abstractPlayerType.getDeclaredConstructor(byte[].class).newInstance(audioData);
+            AbstractPlayer player = abstractPlayerConstructor.newInstance(audioData);
             log.debug("Created new " + player.toString());
             final long currentTime = System.currentTimeMillis();
             audioPlayerQueue.put(currentTime, player);
@@ -107,8 +111,8 @@ public class TTSEngine<E extends AbstractEngine, P extends AbstractPlayer> {
                     log.error("Exception occurred while playing audio", ex);
                 }
             });
-        } catch (NoSuchMethodException|InvocationTargetException|InstantiationException|IllegalAccessException ex) {
-            throw new IOException("Failed to create AbstractPlayer object from dervied type", ex);
+        } catch (InvocationTargetException|InstantiationException|IllegalAccessException ex) {
+            throw new IOException("Failed to create AbstractPlayer object from derived type", ex);
         }
     }
 }
